@@ -23,6 +23,16 @@ test = ["pytest>=8,<10", "mdformat-gfm>=1,<2"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/mdformat_semantic_wrap"]
 
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+  "/README.md",
+  "/pyproject.toml",
+  "/.mdformat.toml",
+  "/.gitignore",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"

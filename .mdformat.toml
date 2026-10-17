@@ -1,0 +1,11 @@
+wrap = "keep"
+extensions = ["semantic_wrap"]
+
+[plugin.semantic_wrap]
+soft_width = 80
+hard_width = 100
+preferred_markers = ",;:-–—"
+
+[plugin.slw]
+lang = "en"
+slw_markers = ".!?"
