@@ -8,21 +8,17 @@ Short sentences stay together;
 long sentences prefer punctuation boundaries near a soft width,
 with a separate hard limit.
 
-## Install locally
+## Installation
 
-Requires Python 3.10 or newer and `uv`.
-From this checkout, create an environment and install the package:
+Requires Python 3.10 or newer.
+From this checkout, install the package into your chosen Python environment:
 
 ```bash
-UV_CACHE_DIR=.ocs/cache uv venv .ocs/venv
-UV_CACHE_DIR=.ocs/cache uv pip install --python .ocs/venv/bin/python -e '.[dev]'
+python -m pip install .
 ```
 
-The `dev` extra includes the test dependencies and pre-commit.
-The `test` extra includes pytest, `mdformat-gfm`,
-and the build backends used by the versioning integration tests.
-For an installation without test dependencies,
-use `-e .` instead of `-e '.[dev]'`.
+The commands below assume the package is installed in the default `python`
+environment.
 The runtime dependencies include mdformat 1.x, mdformat-slw 0.4.0, and wcwidth.
 The upstream plugin is pinned to the release used by the integration tests.
 
@@ -158,8 +154,8 @@ It does not mutate the caller's options.
 ## Format and check
 
 ```bash
-.ocs/venv/bin/python -m mdformat README.md
-.ocs/venv/bin/python -m mdformat --check README.md
+python -m mdformat README.md
+python -m mdformat --check README.md
 ```
 
 `--check` reports unformatted files with a nonzero exit status and does not edit
@@ -169,7 +165,7 @@ Directories can be passed alongside individual files.
 CLI options override values in `.mdformat.toml`:
 
 ```bash
-.ocs/venv/bin/python -m mdformat \
+python -m mdformat \
   --semantic-wrap-soft-width 72 \
   --semantic-wrap-hard-width 88 \
   --semantic-wrap-preferred-markers ',;:' \
@@ -179,7 +175,7 @@ CLI options override values in `.mdformat.toml`:
 Without a configuration file, select the extension explicitly:
 
 ```bash
-.ocs/venv/bin/python -m mdformat --extensions semantic_wrap README.md
+python -m mdformat --extensions semantic_wrap README.md
 ```
 
 To disable punctuation preference on the CLI,
@@ -213,6 +209,16 @@ formatted = mdformat.text(
 ```
 
 ## Development
+
+Install an editable checkout with the development dependencies:
+
+```bash
+python -m pip install -e '.[dev]'
+```
+
+The `dev` extra includes the test dependencies and pre-commit.
+The `test` extra includes pytest, `mdformat-gfm`,
+and the build backends used by the versioning integration tests.
 
 Package source lives in `src/mdformat_semantic_wrap/`:
 
@@ -250,26 +256,25 @@ then verify that the behavior regressions still pass.
 Run the pytest suite after installing the `test` extra:
 
 ```bash
-PYTHONPYCACHEPREFIX=.ocs/pycache .ocs/venv/bin/python -m pytest
+python -m pytest
 ```
 
 Tests cover marker selection, widths, abbreviations, protected content,
 nested indentation, GFM integration, HTML equivalence, idempotence,
 TOML/CLI precedence, and `--check` behavior.
-Pytest caches and its default temporary directory live under `.ocs/`.
+Pytest uses its standard cache and temporary-directory locations.
 
 After installing the `dev` extra, configure the Git hook and run it manually:
 
 ```bash
-export PRE_COMMIT_HOME="$PWD/.ocs/pre-commit"
-.ocs/venv/bin/pre-commit install
-.ocs/venv/bin/pre-commit run --all-files
+python -m pre_commit install
+python -m pre_commit run --all-files
 ```
 
-The repository-local hook runs `.ocs/venv/bin/python -B -m mdformat` on Markdown files,
+The repository-local hook runs `python -m mdformat` on Markdown files,
 using `.mdformat.toml` and the current editable plugin checkout.
-It reuses the project environment rather than creating a separate hook
-environment.
+It uses `python` on `PATH`,
+which must have the development dependencies installed.
 The hook formats files in place;
 review and stage any formatting changes before committing again.
 
@@ -294,7 +299,7 @@ install.
 To inspect the installed version:
 
 ```bash
-.ocs/venv/bin/python -c 'from importlib.metadata import version; print(version("mdformat-semantic-wrap"))'
+python -c 'from importlib.metadata import version; print(version("mdformat-semantic-wrap"))'
 ```
 
 The versioning tests use disposable repositories under pytest's temporary
@@ -304,8 +309,8 @@ untagged checkouts, and building a wheel from an sdist without Git metadata.
 Build the wheel and source distribution with:
 
 ```bash
-UV_CACHE_DIR=.ocs/cache uv build --python .ocs/venv/bin/python --out-dir .ocs/dist
+python -m hatchling build
 ```
 
-Build artifacts are written to `.ocs/dist/`.
+Build artifacts are written to `dist/`.
 Source distributions preserve their resolved version when built without Git.

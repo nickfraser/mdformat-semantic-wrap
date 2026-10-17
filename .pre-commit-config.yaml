@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: mdformat-semantic-wrap
         name: mdformat (semantic wrapping)
-        entry: .ocs/venv/bin/python -B -m mdformat
+        entry: python -m mdformat
         language: unsupported
         types: [markdown]
         require_serial: true

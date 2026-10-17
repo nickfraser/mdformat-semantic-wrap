@@ -53,7 +53,7 @@ def project(tmp_path):
 
 
 def build(directory, target):
-    output = directory / ".ocs" / "dist"
+    output = directory / "dist"
     output.mkdir(parents=True, exist_ok=True)
     result = run(
         directory, sys.executable, "-B", "-c",
