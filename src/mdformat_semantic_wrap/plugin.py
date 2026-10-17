@@ -62,6 +62,15 @@ def protect_inline(text: str, node: RenderTreeNode, context: RenderContext) -> s
     paragraph = _paragraph(node)
     if paragraph is None or _skip(paragraph):
         return text
+    prefix, _, replacements = _protection_state(paragraph, context)
+    key = f"{prefix}{len(replacements)}\ue001"
+    replacements[key] = text
+    return key
+
+
+def _protection_state(
+    paragraph: RenderTreeNode, context: RenderContext
+) -> tuple[str, str, dict[str, str]]:
     state_key = "mdformat_semantic_wrap.protected"
     if state_key not in context.env:
         # Pick a prefix absent from all source tokens in this paragraph. The
@@ -73,11 +82,46 @@ def protect_inline(text: str, node: RenderTreeNode, context: RenderContext) -> s
         ]
         while any(prefix in content for content in contents):
             prefix += "\ue000"
-        context.env[state_key] = (prefix, {})
-    prefix, replacements = context.env[state_key]
-    key = f"{prefix}{len(replacements)}\ue001"
-    replacements[key] = text
-    return key
+        # WORKAROUND(mdformat-slw 0.4.0): it accepts quotes/brackets after
+        # sentence punctuation, but not closing emphasis delimiters. Reserve a
+        # quote-only prefix absent from the source for the workaround below.
+        # Remove this prefix and the closing-delimiter hooks when upstream
+        # recognizes Markdown closers (see tests/test_slw_workarounds.py).
+        closing_prefix = '")'
+        while any(closing_prefix in content for content in contents):
+            closing_prefix += ")"
+        context.env[state_key] = (prefix, closing_prefix, {})
+    return context.env[state_key]
+
+
+def workaround_slw_closing_delimiters(
+    text: str, node: RenderTreeNode, context: RenderContext
+) -> str:
+    """Temporarily expose Markdown closers as closers understood by slw.
+
+    WORKAROUND(mdformat-slw 0.4.0): ``**First.** Next.`` is not split by
+    upstream. Replace only AST-confirmed closing delimiters, not the body,
+    with unique quote/parenthesis tokens. Upstream still sees the real words
+    before punctuation, so its abbreviation and sentence-marker rules apply.
+    The existing protected-text restoration restores the exact delimiters.
+
+    Remove this function and its em/strong/s postprocessor registrations once
+    the pinned upstream version passes tests/test_slw_workarounds.py without
+    them. That file explicitly records the upstream limitation.
+    """
+    paragraph = _paragraph(node)
+    if paragraph is None or _skip(paragraph):
+        return text
+    markup = "~~" if node.type == "s" else node.markup
+    if not markup or not text.endswith(markup):
+        return text
+    _, prefix, replacements = _protection_state(paragraph, context)
+    # Binary encodes the index using only upstream-supported closing chars.
+    # Quotes delimit each key, so one key cannot be a substring of another.
+    encoded = format(len(replacements), "b").translate(str.maketrans("01", ")'"))
+    key = prefix + encoded + '"'
+    replacements[key] = markup
+    return text[:-len(markup)] + key
 
 
 def _skip(node: RenderTreeNode) -> bool:
@@ -105,7 +149,9 @@ def wrap_paragraph(text: str, node: RenderTreeNode, context: RenderContext) -> s
             'Enable semantic_wrap without slw: extensions = ["semantic_wrap"] '
             '(include other syntax extensions as needed)'
         )
-    _, replacements = context.env.pop("mdformat_semantic_wrap.protected", ("", {}))
+    _, _, replacements = context.env.pop(
+        "mdformat_semantic_wrap.protected", ("", "", {})
+    )
     protected = ProtectedText(text, replacements)
     if not text.strip() or _skip(node):
         return protected.restore(text)
@@ -141,4 +187,9 @@ POSTPROCESSORS: Mapping[str, Postprocess] = {
     "code_inline": protect_inline,
     "link": protect_inline,
     "image": protect_inline,
+    # WORKAROUND(mdformat-slw): remove with workaround_slw_closing_delimiters
+    # when upstream handles punctuation before Markdown closing delimiters.
+    "em": workaround_slw_closing_delimiters,
+    "strong": workaround_slw_closing_delimiters,
+    "s": workaround_slw_closing_delimiters,
 }

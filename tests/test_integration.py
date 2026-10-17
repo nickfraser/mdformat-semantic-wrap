@@ -239,3 +239,14 @@ def test_cli_custom_markers_and_stdin(tmp_path):
                             cwd=tmp_path, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert result.stdout == "One |\ntwo three four five\nsix.\n"
+
+
+def test_readme_sentence_still_wraps_at_current_soft_target():
+    source = (
+        "The companion calls that plugin's sentence callback itself and rejects enabling\n"
+        "both extensions together."
+    )
+    assert len(source.replace("\n", " ")) == 105
+    assert len(source.splitlines()[0]) == 79
+    assert format_text(source, soft=80, hard=100) == source + "\n"
+    assert format_text(source.replace("\n", " "), soft=80, hard=100) == source + "\n"
