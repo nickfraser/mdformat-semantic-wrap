@@ -1,0 +1,11 @@
+minimum_pre_commit_version: '4.4.0'
+repos:
+  - repo: local
+    hooks:
+      - id: mdformat-semantic-wrap
+        name: mdformat (semantic wrapping)
+        entry: .ocs/venv/bin/python -B -m mdformat
+        language: unsupported
+        types: [markdown]
+        require_serial: true
+        stages: [pre-commit, manual]

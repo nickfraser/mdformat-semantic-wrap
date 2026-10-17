@@ -15,12 +15,14 @@ From this checkout, create an environment and install the package:
 
 ```bash
 UV_CACHE_DIR=.ocs/cache uv venv .ocs/venv
-UV_CACHE_DIR=.ocs/cache uv pip install --python .ocs/venv/bin/python -e '.[test]'
+UV_CACHE_DIR=.ocs/cache uv pip install --python .ocs/venv/bin/python -e '.[dev]'
 ```
 
-The `test` extra includes pytest and `mdformat-gfm` for integration tests.
+The `dev` extra includes the test dependencies and pre-commit.
+The `test` extra includes pytest, `mdformat-gfm`,
+and the build backends used by the versioning integration tests.
 For an installation without test dependencies,
-use `-e .` instead of `-e '.[test]'`.
+use `-e .` instead of `-e '.[dev]'`.
 The runtime dependencies include mdformat 1.x, mdformat-slw 0.4.0, and wcwidth.
 The upstream plugin is pinned to the release used by the integration tests.
 
@@ -43,8 +45,8 @@ lang = "en"
 slw_markers = ".!?"
 ```
 
-**Select `semantic_wrap` explicitly and omit `slw` from `extensions`.** Mdformat
-normally enables every installed plugin,
+**Select `semantic_wrap` explicitly and omit `slw` from `extensions`.**
+Mdformat normally enables every installed plugin,
 including the dependency's independent wrapping pass.
 The companion calls that plugin's sentence callback itself and rejects enabling
 both extensions together.
@@ -224,6 +226,27 @@ context.
 It uses no private upstream helpers or monkey-patching.
 Mdformat's inline hooks protect code and links before sentence detection.
 
+### Upstream workarounds
+
+mdformat-slw 0.4.0 misses sentence-ending punctuation before Markdown closing emphasis delimiters,
+for example `**First sentence.** Second sentence.`.
+The companion's `workaround_slw_closing_delimiters` hook temporarily represents
+AST-confirmed closing emphasis, strong-emphasis,
+and strikethrough delimiters as closing characters recognized by upstream,
+then restores the original markup.
+Abbreviation handling and configured sentence markers still come from upstream.
+
+The hook, its registrations,
+and its token prefix are explicitly marked `WORKAROUND(mdformat-slw)` in
+`plugin.py`.
+`tests/test_slw_workarounds.py` documents the upstream bug and tests the
+companion-side correction.
+When upgrading the pinned dependency to a release that fixes this behavior,
+remove the upstream-only bug reproduction and the workaround hooks,
+then verify that the behavior regressions still pass.
+
+### Tests and pre-commit
+
 Run the pytest suite after installing the `test` extra:
 
 ```bash
@@ -235,6 +258,49 @@ nested indentation, GFM integration, HTML equivalence, idempotence,
 TOML/CLI precedence, and `--check` behavior.
 Pytest caches and its default temporary directory live under `.ocs/`.
 
+After installing the `dev` extra, configure the Git hook and run it manually:
+
+```bash
+export PRE_COMMIT_HOME="$PWD/.ocs/pre-commit"
+.ocs/venv/bin/pre-commit install
+.ocs/venv/bin/pre-commit run --all-files
+```
+
+The repository-local hook runs `.ocs/venv/bin/python -B -m mdformat` on Markdown files,
+using `.mdformat.toml` and the current editable plugin checkout.
+It reuses the project environment rather than creating a separate hook
+environment.
+The hook formats files in place;
+review and stage any formatting changes before committing again.
+
+### Versioning and distributions
+
+Versions come from Git through `hatch-vcs` and `setuptools_scm`.
+There is no manually maintained version string in `pyproject.toml`.
+Use tags such as `v1.2.3` for releases:
+
+- A clean checkout at `v1.2.3` builds version `1.2.3`.
+- Commits after that tag get a next-patch development version such as
+  `1.2.4.dev1+g<commit>`.
+- Dirty tracked files add a date to the local version identifier.
+- Before the first release tag,
+  builds receive an SCM-derived development version.
+
+Editable-install version metadata reflects the Git state at installation time.
+Refresh it after changing tags or commits by rerunning the editable installation
+command above.
+Formatting code changes themselves are picked up immediately by the editable
+install.
+To inspect the installed version:
+
+```bash
+.ocs/venv/bin/python -c 'from importlib.metadata import version; print(version("mdformat-semantic-wrap"))'
+```
+
+The versioning tests use disposable repositories under pytest's temporary
+directory to check clean tags, development commits, dirty checkouts,
+untagged checkouts, and building a wheel from an sdist without Git metadata.
+
 Build the wheel and source distribution with:
 
 ```bash
@@ -242,3 +308,4 @@ UV_CACHE_DIR=.ocs/cache uv build --python .ocs/venv/bin/python --out-dir .ocs/di
 ```
 
 Build artifacts are written to `.ocs/dist/`.
+Source distributions preserve their resolved version when built without Git.

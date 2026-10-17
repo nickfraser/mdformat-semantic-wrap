@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling>=1.27,<2"]
+requires = ["hatchling>=1.27,<2", "hatch-vcs>=0.5,<1"]
 build-backend = "hatchling.build"
 
 [project]
 name = "mdformat-semantic-wrap"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Soft-target semantic wrapping for mdformat, powered by mdformat-slw"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -18,7 +18,20 @@ dependencies = [
 semantic_wrap = "mdformat_semantic_wrap"
 
 [project.optional-dependencies]
-test = ["pytest>=8,<10", "mdformat-gfm>=1,<2"]
+test = [
+  "pytest>=8,<10",
+  "mdformat-gfm>=1,<2",
+  "hatchling>=1.27,<2",
+  "hatch-vcs>=0.5,<1",
+]
+dev = ["mdformat-semantic-wrap[test]", "pre-commit>=4.4,<5"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+version_scheme = "guess-next-dev"
+local_scheme = "node-and-date"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mdformat_semantic_wrap"]
@@ -30,6 +43,7 @@ include = [
   "/README.md",
   "/pyproject.toml",
   "/.mdformat.toml",
+  "/.pre-commit-config.yaml",
   "/.gitignore",
 ]
 
