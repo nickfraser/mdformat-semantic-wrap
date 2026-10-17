@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mdformat-semantic-wrap"
+version = "0.1.0"
+description = "Soft-target semantic wrapping for mdformat, powered by mdformat-slw"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "mdformat>=1.0,<2",
+  "mdformat-slw==0.4.0",
+  "wcwidth>=0.2.13,<1",
+]
+
+[project.entry-points."mdformat.parser_extension"]
+semantic_wrap = "mdformat_semantic_wrap"
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10", "mdformat-gfm>=1,<2"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mdformat_semantic_wrap"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+cache_dir = ".ocs/pytest-cache"
