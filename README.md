@@ -17,6 +17,12 @@ From this checkout, install the package into your chosen Python environment:
 python -m pip install .
 ```
 
+To install directly from GitHub, run:
+
+```bash
+python -m pip install git+https://github.com/nickfraser/mdformat-semantic-wrap.git
+```
+
 The commands below assume the package is installed in the default `python`
 environment.
 The runtime dependencies include mdformat 1.x, mdformat-slw 0.4.0, and wcwidth.
